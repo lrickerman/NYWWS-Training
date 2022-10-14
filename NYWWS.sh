@@ -93,7 +93,7 @@ function num_days {
 	EOF
 	grep -F '/data/IR' tmp.txt > log.txt
 	cat log.txt >> $LOG_FILE
-	#rm tmp.txt
+	rm tmp.txt
 	if [ -s log.txt ];
 	then
 		COUNT=$(wc -l < log.txt)
