@@ -13,6 +13,10 @@ The process includes the following:
 6. Logging all data into a genexus.log file
 
 
+### Wiki
+
+The [Wiki](https://github.com/lrickerman/NYWWS-Training/wiki) includes instructions for [Ubuntu installation](https://github.com/lrickerman/NYWWS-Training/wiki/Ubuntu-installation), [Manual file retrieval](https://github.com/lrickerman/NYWWS-Training/wiki/Manual-file-retrieval), [SSH key creation](https://github.com/lrickerman/NYWWS-Training/wiki/SSH-key-creation), and [WSL data retrieval and transfer](https://github.com/lrickerman/NYWWS-Training/wiki/WSL-data-retrieval-and-transfer). These are alternatives to using the script.
+
 
 ### Dependencies
 
