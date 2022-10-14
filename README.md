@@ -30,7 +30,7 @@ The [Wiki](https://github.com/lrickerman/NYWWS-Training/wiki) includes instructi
 ## Download NYWWS.sh
 To download the script, navigate to [NYWWS.sh](https://github.com/lrickerman/NYWWS-Training/blob/main/NYWWS.sh) and click on 'Raw' to view the raw script. Right-click on the page once it has loaded and select 'Save as...' to save the script. Make sure it is in a place you can navigate to from WSL. It is recommended to move the file to your home directory.
 
-Ex. if NYWWS.sh is saved to your desktop, you can move it to your home directory with the following:
+* Ex. if NYWWS.sh is saved to your desktop, you can move it to your home directory with the following:
 
 `cd`
 
