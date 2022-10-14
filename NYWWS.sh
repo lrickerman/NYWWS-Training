@@ -6,11 +6,7 @@ dt=`date +%Y%m%d`
 export dt
 echo "--begin">> $LOG_FILE
 echo $date >> $LOG_FILE
-#sudo apt update && sudo apt upgrade
 
-#exec 2>&1 ${LOG_FILE[1]}
-
-#NOTE: bash v4 required - if running macOS with bash v3, conda environment with bash v4 is required
 
 #FUNCTIONS
 #FUNCTION:default profile
