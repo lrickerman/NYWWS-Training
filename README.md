@@ -9,7 +9,7 @@ The process includes the following:
 2. Searching the instrument for the most recent processed bam files
 3. Copying these files into /tmp/nywws/
 4. Renaming the files according to the ID specified when the Genexus run was initiated (i.e. the sample ID)
-5. Uploading the processed bam files under the sample ID name
+5. Uploading the processed bam files under the sample ID name in the correct facility location folder
 6. Logging all data into a genexus.log file
  
  
