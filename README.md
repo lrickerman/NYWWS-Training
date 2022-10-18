@@ -1,5 +1,8 @@
 # NYWWS--GENEXUS FILE TRANSFER
 Genexus .bam File Transfer to GCP
+
+**_NOTE THAT THE GCP LINK WILL CHANGE. THIS WILL BE UPDATED TO REFLECT THE CHANGES WHEN THE NEW LINK IS ANNOUNCED._**
+
 ### Introduction
 
 The NYWWS.sh script transfers the processed bam files (*.merged.bam.ptrim.bam) to the NYWWS GCP at Syracuse for analysis.
