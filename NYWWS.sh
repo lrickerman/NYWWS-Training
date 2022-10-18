@@ -6,15 +6,45 @@ dt=`date +%Y%m%d`
 export dt
 echo "--begin">> $LOG_FILE
 echo $date >> $LOG_FILE
+#sudo apt update && sudo apt upgrade
 
+#exec 2>&1 ${LOG_FILE[1]}
+
+#NOTE: bash v4 required - if running macOS with bash v3, conda environment with bash v4 is required
 
 #FUNCTIONS
-#FUNCTION:default profile
-func () {
-    ssh_path=$1
-	echo "$ssh_path"
-	instrIP=$2
-	echo "$instrIP"
+#FUNCTION: facility name
+function facility_name_fx {
+	echo "What is the name of your institution?"
+	PS3='Please enter your choice: '
+	options=("University at Buffalo" "SUNY Upstate" "University of Rochester" "New York Medical Center" "Wadsworth Center NYSDOH")
+	select i in "${options[@]}"
+	do
+		case $i in
+			"University at Buffalo")
+				echo "Your files will upload to gs://su_nywws_test_bucket/buffalo"
+				echo "gs://su_nywws_test_bucket/buffalo" > facility.txt
+				;;
+			"SUNY Upstate")
+				echo "Your files will upload to gs://su_nywws_test_bucket/suny_upstate"
+				echo "gs://su_nywws_test_bucket/suny_upstate" > facility.txt
+				;;
+			"University of Rochester")
+				echo "Your files will upload to gs://su_nywws_test_bucket/rochester"
+				echo "gs://su_nywws_test_bucket/rochester" > facility.txt
+				;;
+			"New York Medical Center")
+				echo "Your files will upload to gs://su_nywws_test_bucket/nymc"
+				echo "gs://su_nywws_test_bucket/nymc" > facility.txt
+				;;
+			"Wadsworth Center NYSDOH")
+				echo "Your files will upload to gs://su_nywws_test_bucket/wadsworth"
+				echo "gs://su_nywws_test_bucket/wadsworth" > facility.txt
+				;;
+			*) echo "invalid option $REPLY";;
+		esac
+		break
+	done
 }
 #FUNCTION:ask for ssh key path, create ssh key; look for ssh_path.txt, ask for ssh key path
 function ssh_key_fx {
@@ -81,7 +111,12 @@ function create_default_profile_fx {
 			while IFS= read -r line || [[ -n "$line" ]]; do
 				instrIP="$line"
 			done < "instrIP.txt"
+			while IFS= read -r line || [[ -n "$line" ]]; do
+				facility="$line"
+			done < "facility.txt"
+			echo "ssh_path=$ssh_path" > ${name}_default.txt
 			echo "instrIP=$instrIP" >> ${name}_default.txt
+			echo "facility=$facility" >> ${name}_default.txt
 			echo "${name}_default.txt created"
 		fi
 }
@@ -116,12 +151,12 @@ function gcp_upload {
 		s=$(echo $line | sed "s/.*ChipLane.*\/\(.*\)_LibPrep.*/\1/");
 		scp -q -i $ssh_path ionadmin@$instrIP:"$line" /tmp/nywws/$s.ptrim.bam;
 		done < log.txt
-		echo "Files have been renamed. Proceeding to upload..."
+		echo "Files have been renamed. Proceeding to upload."
 		COUNT=$(wc -l < log.txt)
 		DAYSAGO=$(date --date="$days days ago" +%m-%d-%Y)
 		rm log.txt
 		cd /tmp/
-		gcloud storage cp -r nywws/ gs://su_nywws_test_bucket/test >> $LOG_FILE 2>&1
+		gcloud storage cp nywws/* $facility >> $LOG_FILE 2>&1
 		rm /tmp/nywws/*
 		echo "Your files have been uploaded."
 		echo "$COUNT files uploaded to GCP from $DAYSAGO." >> $LOG_FILE
@@ -137,28 +172,25 @@ read -p "What is your name?  " name
 export $name
 if test -f "${name}_default.txt" ;
 then
-	i=0
-	while IFS= read -r line || [[ -n "$line" ]]; do
-		if [ $i -eq 0 ]; then
-			i=1
-			ssh_path=$(echo "${line}" | cut -f2 -d'=')
-		else
-			i=0
-			instrIP=$(echo "${line}" | cut -f2 -d'=')
-			func "$ssh_path" "$instrIP"
-		fi
-	done < ${name}_default.txt
+	ssh_path=$(awk -F= '/ssh/{print $2}' ${name}_default.txt)
+	instrIP=$(awk -F= '/instr/{print $2}' ${name}_default.txt)
+	facility=$(awk -F= '/facility/{print $2}' ${name}_default.txt)
+	echo "$ssh_path"
+	echo "$instrIP"
+	echo "$facility"
 	read -p 'Do you wish to use the above credentials (y/n)? ' -r
 		if [[ $REPLY =~ ^[Yy]$ ]]
 		then
 			echo "Using default profile. Logging into $instrIP with $ssh_path" | tee -a $LOG_FILE
 		else
+			facility_name_fx
 			ssh_key_fx
 			instr_IP_fx
 			create_default_profile_fx
 			echo "Logging into $instrIP with $ssh_path" | tee -a $LOG_FILE
 		fi
 else
+	facility_name_fx
 	ssh_key_fx
 	instr_IP_fx
 	create_default_profile_fx
