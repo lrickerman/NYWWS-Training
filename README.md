@@ -26,7 +26,7 @@ The [Wiki](https://github.com/lrickerman/NYWWS-Training/wiki) includes instructi
 * SSH key (private and public)
 * Instrument IP address
 * [Python3.8+](https://www.python.org/downloads/)
-* [Google Cloud SDK](https://cloud.google.com/sdk/docs/install)
+* [Google Cloud SDK](https://cloud.google.com/sdk/docs/install-sdk#deb) - NOTE: install the Debian/Ubuntu version for WSL, NOT the Windows version.
 * [Bash 4.0+](https://www.gnu.org/software/bash/) - NOTE: if running macOS with Bash v3, [Conda](https://docs.conda.io/en/latest/miniconda.html) environment with Bash v4 or higher is required
  
  
