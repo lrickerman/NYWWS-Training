@@ -127,6 +127,7 @@ function num_days {
 		find /data/IR/data/analysis_output/ -type f -ctime -"$days" -name "*.ptrim.bam" -not -path "*block*" -print
 	EOF
 	grep -F '/data/IR' tmp.txt > log.txt
+	grep -F 'NY' log.txt > log.txt
 	cat log.txt >> $LOG_FILE
 	rm tmp.txt
 	if [ -s log.txt ];
