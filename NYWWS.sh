@@ -126,9 +126,15 @@ function num_days {
 	ssh -i $ssh_path $instrIP -l ionadmin <<-EOF > tmp.txt 2>> $LOG_FILE
 		find /data/IR/data/analysis_output/ -type f -ctime -"$days" -name "*.ptrim.bam" -not -path "*block*" -print
 	EOF
-	grep -F '/data/IR' tmp.txt > log.txt
-	grep -F 'NY' log.txt > log.txt
+	grep -F '/data/IR' tmp.txt > log2.txt
+	grep -F 'NY' log2.txt > log.txt
 	cat log.txt >> $LOG_FILE
+	rm tmp.txt
+	ssh -i $ssh_path $instrIP -l ionadmin <<-EOF > tmp.txt 2>> $LOG_FILE
+		find /data/IR/data/analysis_output/ -type f -ctime -"$days" -path "*generateConsensus*" -name "*ion.bc_summary.xls" -not -path "*block*" -print
+	EOF
+	grep -F '/data/IR' tmp.txt > report.txt
+	cat report.txt >> $LOG_FILE
 	rm tmp.txt
 	if [ -s log.txt ];
 	then
@@ -152,15 +158,40 @@ function gcp_upload {
 		s=$(echo $line | sed "s/.*ChipLane.*\/\(.*\)_LibPrep.*/\1/");
 		scp -q -i $ssh_path ionadmin@$instrIP:"$line" /tmp/nywws/$s.ptrim.bam;
 		done < log.txt
-		echo "Files have been renamed. Proceeding to upload."
 		COUNT=$(wc -l < log.txt)
-		DAYSAGO=$(date --date="$days days ago" +%m-%d-%Y)
 		rm log.txt
+	while IFS= read -r line || [[ -n "$line" ]]; do
+		s=$(echo $line | sed "s/.*generateConsensus.*\/.*Auto.*\(_summary\).xls/\1/");
+		scp -q -i $ssh_path ionadmin@$instrIP:"$line" /tmp/nywws/$dt$s.tsv;
+		done < report.txt
+		REPORT=$(wc -l < report.txt)
+		echo "Files have been renamed. Proceeding to QC check and upload."
 		cd /tmp/
+	while IFS=$'\t' read -r; do
+		cut -f 2,11;
+		done < nywws/${dt}_summary.tsv >> nywws/tmp.txt
+		cat nywws/tmp.txt | awk '$1 && $2> 90' > noupload.txt
+	while IFS=$'\t' read -r line || [[ -n "$line" ]]; do
+		s=$(echo $line | sed "s/\(^.*\S\)\s.*/\1.ptrim.bam/");
+		rm nywws/$s;
+		done < noupload.txt
+		rm nywws/tmp.txt
+		NOUP=$(wc -l < noupload.txt)
+		DAYSAGO=$(date --date="$days days ago" +%m-%d-%Y)
 		gcloud storage cp nywws/* $facility >> $LOG_FILE 2>&1
 		rm /tmp/nywws/*
 		echo "Your files have been uploaded."
-		echo "$COUNT files uploaded to GCP from $DAYSAGO." >> $LOG_FILE
+	if [[ "$NOUP" = 0 ]]; then
+		TOTAL=$((COUNT+REPORT))
+		echo "$TOTAL files found uploaded to GCP from $DAYSAGO: $COUNT samples and $REPORT summary report."
+		echo "$TOTAL files found uploaded to GCP from $DAYSAGO: $COUNT samples and $REPORT summary report." >> $LOG_FILE
+	else
+		TOTAL=$((COUNT-NOUP))
+		echo "$COUNT samples found, but only $TOTAL samples passed QC."
+		echo "$TOTAL samples and $REPORT summary report uploaded to GCP from $DAYSAGO."
+		echo "$COUNT samples found, but only $TOTAL samples passed QC." >> $LOG_FILE
+		echo "$TOTAL samples and $REPORT summary report uploaded to GCP from $DAYSAGO." >> $LOG_FILE
+	fi
 }
 
 
