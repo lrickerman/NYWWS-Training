@@ -130,12 +130,12 @@ function num_days {
 	grep -F 'NY' log2.txt > log.txt
 	cat log.txt >> $LOG_FILE
 	rm tmp.txt
-	ssh -i $ssh_path $instrIP -l ionadmin <<-EOF > tmp.txt 2>> $LOG_FILE
+	ssh -i $ssh_path $instrIP -l ionadmin <<-EOF > tmp2.txt 2>> $LOG_FILE
 		find /data/IR/data/analysis_output/ -type f -ctime -"$days" -path "*generateConsensus*" -name "*ion.bc_summary.xls" -not -path "*block*" -print
 	EOF
-	grep -F '/data/IR' tmp.txt > report.txt
+	grep -F '/data/IR' tmp2.txt > report.txt
 	cat report.txt >> $LOG_FILE
-	rm tmp.txt
+	rm tmp2.txt
 	if [ -s log.txt ];
 	then
 		COUNT=$(wc -l < log.txt)
@@ -169,13 +169,13 @@ function gcp_upload {
 		cd /tmp/
 	while IFS=$'\t' read -r; do
 		cut -f 2,11;
-		done < nywws/${dt}_summary.tsv > nywws/tmp.txt
-		cat nywws/tmp.txt | awk '$1 && $2> 90' > noupload.txt
+		done < nywws/${dt}_summary.tsv > nywws/tmp_sum.txt
+		cat nywws/tmp_sum.txt | awk '$1 && $2> 90' > noupload.txt
 	while IFS=$'\t' read -r line || [[ -n "$line" ]]; do
 		s=$(echo $line | sed "s/\(^.*\S\)\s.*/\1.ptrim.bam/");
 		rm nywws/$s;
 		done < noupload.txt
-		rm nywws/tmp.txt
+		rm nywws/tmp_sum.txt
 		NOUP=$(wc -l < noupload.txt)
 		DAYSAGO=$(date --date="$days days ago" +%m-%d-%Y)
 		gcloud storage cp nywws/* $facility >> $LOG_FILE 2>&1
