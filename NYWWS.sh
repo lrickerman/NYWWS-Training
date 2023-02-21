@@ -169,7 +169,7 @@ function gcp_upload {
 		cd /tmp/
 	while IFS=$'\t' read -r; do
 		cut -f 2,11;
-		done < nywws/${dt}_summary.tsv >> nywws/tmp.txt
+		done < nywws/${dt}_summary.tsv > nywws/tmp.txt
 		cat nywws/tmp.txt | awk '$1 && $2> 90' > noupload.txt
 	while IFS=$'\t' read -r line || [[ -n "$line" ]]; do
 		s=$(echo $line | sed "s/\(^.*\S\)\s.*/\1.ptrim.bam/");
