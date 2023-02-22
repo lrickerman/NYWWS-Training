@@ -131,7 +131,7 @@ function num_days {
 	cat log.txt >> $LOG_FILE
 	rm tmp.txt
 	ssh -i $ssh_path $instrIP -l ionadmin <<-EOF > tmp2.txt 2>> $LOG_FILE
-		find /data/IR/data/analysis_output/ -type f -ctime -"$days" -path "*generateConsensus*" -name "*ion.bc_summary.xls" -not -path "*block*" -print
+		find /data/IR/data/analysis_output/ -type f -ctime -"$days" -path "*generateConsensus*" -name "*.bc_summary.xls" -not -path "*block*" -print
 	EOF
 	grep -F '/data/IR' tmp2.txt > report.txt
 	cat report.txt >> $LOG_FILE
