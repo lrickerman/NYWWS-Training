@@ -165,7 +165,17 @@ function gcp_upload {
 		scp -q -i $ssh_path ionadmin@$instrIP:"$line" /tmp/nywws/$dt$s.tsv;
 		done < report.txt
 		REPORT=$(wc -l < report.txt)
-		echo "Files have been renamed. Proceeding to QC check and upload."
+		echo "Files have been renamed."
+		#save summary file
+		read -p "Do you wish to save a local copy of the run summary (y/n)? " -r
+		if [[ $REPLY =~ ^[Yy]$ ]]
+		then
+			read -p "Please enter the full path where you would like to save (e.g. /mnt/c/Users/user/Documents)  " savepath
+			cp /tmp/nywws/$dt$s.tsv $savepath/$dt$s.tsv
+			echo "$savepath/$dt$s.tsv saved. Proceeding to QC check and upload."
+		else
+			echo "Proceeding to QC check and upload."
+		fi
 		cd /tmp/
 	while IFS=$'\t' read -r; do
 		cut -f 2,11;
