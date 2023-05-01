@@ -181,14 +181,10 @@ function gcp_upload {
 		cut -f 2,11;
 		done < nywws/${dt}_summary.tsv > nywws/tmp_sum.txt
 		cat nywws/tmp_sum.txt | awk '$1 && $2> 90' > noupload.txt
-	while IFS=$'\t' read -r line || [[ -n "$line" ]]; do
-		s=$(echo $line | sed "s/\(^.*\S\)\s.*/\1.ptrim.bam/");
-		rm nywws/$s;
-		done < noupload.txt
 		rm nywws/tmp_sum.txt
 		NOUP=$(wc -l < noupload.txt)
 		DAYSAGO=$(date --date="$days days ago" +%m-%d-%Y)
-		gcloud storage cp nywws/* $facility >> $LOG_FILE 2>&1
+		gcloud storage cp nywws/* $facility
 		rm /tmp/nywws/*
 		echo "Your files have been uploaded."
 	if [[ "$NOUP" = 0 ]]; then
