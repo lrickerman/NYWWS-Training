@@ -36,9 +36,8 @@ To download the script, navigate to [NYWWS.sh](https://github.com/lrickerman/NYW
 
 * Ex. if NYWWS.sh is saved to your desktop, you can move it to your home directory with the following:
 
-`cd
-
-mv /mnt/c/Users/[NAME]/Desktop/NYWWS.sh .`
+`cd`
+`mv /mnt/c/Users/[NAME]/Desktop/NYWWS.sh .`
  
  
 ### Execute
