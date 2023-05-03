@@ -3,7 +3,7 @@ Genexus .bam File Transfer to GCP
 
 **_NOTE THAT THE GCP LINK WILL CHANGE. THIS WILL BE UPDATED TO REFLECT THE CHANGES WHEN THE NEW LINK IS ANNOUNCED._**
 
-### Introduction
+## Introduction
 
 The NYWWS.sh script transfers the processed bam files (*.merged.bam.ptrim.bam) to the NYWWS GCP at Syracuse for analysis.
 
@@ -30,7 +30,8 @@ The [Wiki](https://github.com/lrickerman/NYWWS-Training/wiki) includes instructi
 * [Bash 4.0+](https://www.gnu.org/software/bash/) - NOTE: if running macOS with Bash v3, [Conda](https://docs.conda.io/en/latest/miniconda.html) environment with Bash v4 or higher is required
  
  
-## Download NYWWS.sh
+## NYWWS.sh
+### Download
 To download the script, navigate to [NYWWS.sh](https://github.com/lrickerman/NYWWS-Training/blob/main/NYWWS.sh) and click on 'Raw' to view the raw script. Right-click on the page once it has loaded and select 'Save as...' to save the script. Make sure it is in a place you can navigate to from WSL. It is recommended to move the file to your home directory.
 
 * Ex. if NYWWS.sh is saved to your desktop, you can move it to your home directory with the following:
@@ -40,9 +41,17 @@ To download the script, navigate to [NYWWS.sh](https://github.com/lrickerman/NYW
 `mv /mnt/c/Users/[NAME]/Desktop/NYWWS.sh .`
  
  
-## Execute
+### Execute
 To run the script:
 
 `./NYWWS.sh`
 
 Prompts will appear that you will answer.
+
+
+## sample_check.sh
+This can be downloaded the same way as NYWWS.sh, but is run with three (3) arguments: path to ssh key, instrument IP, and facility. It can be run as follows:
+
+`./sample_check.sh [/path/to/shh/key] [instrument IP address] [facility]`
+
+This is a one-time script to run for QC purposes.
