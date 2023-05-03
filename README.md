@@ -45,7 +45,9 @@ mv /mnt/c/Users/[NAME]/Desktop/NYWWS.sh .
 ### Execute
 To run the script:
 
-`./NYWWS.sh`
+```
+./NYWWS.sh
+```
 
 Prompts will appear that you will answer.
 
@@ -53,6 +55,8 @@ Prompts will appear that you will answer.
 ## sample_check.sh
 This can be downloaded the same way as NYWWS.sh, but is run with three (3) arguments: path to ssh key, instrument IP, and facility. It can be run as follows:
 
-`./sample_check.sh [/path/to/shh/key] [instrument IP address] [facility]`
+```
+./sample_check.sh [/path/to/shh/key] [instrument IP address] [facility]
+```
 
 This is a one-time script to run for QC purposes.
