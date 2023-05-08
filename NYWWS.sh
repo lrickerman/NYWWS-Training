@@ -130,12 +130,6 @@ function num_days {
 	grep -F 'NY' log2.txt > log.txt
 	cat log.txt >> $LOG_FILE
 	rm tmp.txt
-	ssh -i $ssh_path $instrIP -l ionadmin <<-EOF > tmp2.txt 2>> $LOG_FILE
-		find /data/IR/data/analysis_output/ -type f -ctime -"$days" -path "*generateConsensus*" -name "*.bc_summary.xls" -not -path "*block*" -print
-	EOF
-	grep -F '/data/IR' tmp2.txt > report.txt
-	cat report.txt >> $LOG_FILE
-	rm tmp2.txt
 	if [ -s log.txt ];
 	then
 		COUNT=$(wc -l < log.txt)
@@ -157,47 +151,37 @@ function gcp_upload {
 	while IFS= read -r line || [[ -n "$line" ]]; do
 		s=$(echo $line | sed "s/.*ChipLane.*\/\(.*\)_LibPrep.*/\1/");
 		scp -q -i $ssh_path ionadmin@$instrIP:"$line" /tmp/nywws/$s.ptrim.bam;
-		done < log.txt
-		COUNT=$(wc -l < log.txt)
-		rm log.txt
-	while IFS= read -r line || [[ -n "$line" ]]; do
-		s=$(echo $line | sed "s/.*generateConsensus.*\/.*Auto.*\(_summary\).xls/\1/");
-		scp -q -i $ssh_path ionadmin@$instrIP:"$line" /tmp/nywws/$dt$s.tsv;
-		done < report.txt
-		REPORT=$(wc -l < report.txt)
-		echo "Files have been renamed."
-		#save summary file
-		read -p "Do you wish to save a local copy of the run summary (y/n)? " -r
+	done < log.txt
+	COUNT=$(wc -l < log.txt)
+	rm log.txt
+	echo "Files have been renamed."
+	DAYSAGO=$(date --date="$days days ago" +%m-%d-%Y)
+	INBOX=$facility/inbox
+	gcloud storage cp /tmp/nywws/* $INBOX
+	rm /tmp/nywws/*
+	gsutil ls $INBOX
+	echo "These are the files you will be uploading."
+	read -p 'Do you wish to upload these files (y/n)? ' -r
 		if [[ $REPLY =~ ^[Yy]$ ]]
-		then
-			read -p "Please enter the full path where you would like to save (e.g. /mnt/c/Users/user/Documents)  " savepath
-			cp /tmp/nywws/$dt$s.tsv $savepath/$dt$s.tsv
-			echo "$savepath/$dt$s.tsv saved. Proceeding to QC check and upload."
-		else
-			echo "Proceeding to QC check and upload."
+			then
+				echo "Files uploading" | tee -a $LOG_FILE
+				gsutil -m mv $INBOX $facility
+				echo "$COUNT files uploaded to GCP from $DAYSAGO." | tee -a $LOG_FILE
+			else
+				echo "Files will now be removed."
+				echo "Removing files..."
+				gsutil rm -a $INBOX/*
+				echo "Files removed." | tee -a $LOG_FILE
+				read -p 'Do you wish to restart (y/n)? ' -r
+					if [[ $REPLY =~ ^[Yy]$ ]]
+						then
+							echo "Restarting" | tee -a $LOG_FILE
+							num_days
+							gcp_upload
+						else
+							echo "You should restart soon." | tee -a $LOG_FILE
+					fi
 		fi
-		cd /tmp/
-	while IFS=$'\t' read -r; do
-		cut -f 2,11;
-		done < nywws/${dt}_summary.tsv > nywws/tmp_sum.txt
-		cat nywws/tmp_sum.txt | awk '$1 && $2> 90' > noupload.txt
-		rm nywws/tmp_sum.txt
-		NOUP=$(wc -l < noupload.txt)
-		DAYSAGO=$(date --date="$days days ago" +%m-%d-%Y)
-		gcloud storage cp nywws/* $facility
-		rm /tmp/nywws/*
-		echo "Your files have been uploaded."
-	if [[ "$NOUP" = 0 ]]; then
-		TOTAL=$((COUNT+REPORT))
-		echo "$TOTAL files found uploaded to GCP from $DAYSAGO: $COUNT samples and $REPORT summary report."
-		echo "$TOTAL files found uploaded to GCP from $DAYSAGO: $COUNT samples and $REPORT summary report." >> $LOG_FILE
-	else
-		TOTAL=$((COUNT-NOUP))
-		echo "$COUNT samples found, but only $TOTAL samples passed QC."
-		echo "$TOTAL samples and $REPORT summary report uploaded to GCP from $DAYSAGO."
-		echo "$COUNT samples found, but only $TOTAL samples passed QC." >> $LOG_FILE
-		echo "$TOTAL samples and $REPORT summary report uploaded to GCP from $DAYSAGO." >> $LOG_FILE
-	fi
 }
 
 
@@ -235,32 +219,6 @@ else
 	echo "Logging into $instrIP with $ssh_path" | tee -a $LOG_FILE
 fi
 
-
-#log2 saved with date
-varlog1=$(find . -type f -name "log_[0-9]*.txt");
-varlog=${varlog1:2}
-#DOES NOT WORK WITH MULTIPLE FILES
-if [[ -e $varlog ]]; then
-	echo "$varlog was never uploaded." | tee -a $LOG_FILE
-	read -p 'Would you like to upload now?' -r
-	if [[ $REPLY =~ ^[Yy]$ ]]
-	then
-		while IFS= read -r line || [[ -n "$line" ]]; do
-		s=$(echo $line | sed "s/.*ChipLane.*\/\(.*\)_LibPrep.*/\1/");
-		scp -q -i $ssh_path ionadmin@$instrIP:"$line" /tmp/nywws/$s.ptrim.bam;
-		done < $varlog1
-		COUNT=$(wc -l < $varlog1)
-		DAYSAGO=$(date --date="$days days ago" +%m-%d-%Y)
-		rm $varlog
-		cd /tmp/
-		gcloud storage cp -r nywws/ gs://su_nywws_test_bucket/test
-		rm /tmp/nywws/*
-		echo "$COUNT files have been uploaded." | tee -a $LOG_FILE
-	else
-		echo "These should be uploaded soon, please do not forget about them. Goodbye!"
-	fi
-fi
-#previous log.txt exists
 if test -f "log.txt" ;
 then
 	echo "You have a log file that was not previously uploaded." | tee -a $LOG_FILE
@@ -272,14 +230,14 @@ then
 		read -p "Do you wish to upload these now (y/n)? " -r
 		if [[ $REPLY =~ ^[Yy]$ ]]
 		then
-			echo "Proceeding... Please wait."
+			echo "Files are downloading... Please wait."
 			gcp_upload
 		fi
 	else
 		read -p "Do you wish to upload these now (y/n)? " -r
 		if [[ $REPLY =~ ^[Yy]$ ]]
 		then
-			echo "Proceeding... Please wait."
+			echo "Files are downloading... Please wait."
 			gcp_upload
 			read -p "Would you like to check for newer files (y/n) " -r
 			if [[ $REPLY =~ ^[Yy]$ ]]
@@ -303,7 +261,7 @@ else
 	read -p "Do you wish to upload these now (y/n)? " -r
 	if [[ $REPLY =~ ^[Yy]$ ]]
 	then
-		echo "Proceeding... Please wait."
+		echo "Files are downloading... Please wait."
 		gcp_upload
 	else
 		read -p "Are you sure you do NOT want to upload your files (Y/n)? " -r
