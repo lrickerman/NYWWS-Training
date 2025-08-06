@@ -120,83 +120,61 @@ function create_default_profile_fx {
 			echo "${name}_default.txt created"
 		fi
 }
-#FUNCTION:number of days, login
-function num_days {
-	read -p 'How many days ago was the last run (enter numbers only)? ' days
-	ssh -i $ssh_path $instrIP -l ionadmin <<-EOF > tmp.txt 2>> $LOG_FILE
-		find /data/IR/data/analysis_output/ -type f -ctime -"$days" -name "*.ptrim.bam" -not -path "*block*" -print
-	EOF
-	grep -F '/data/IR' tmp.txt > log2.txt
-	grep -F 'NY' log2.txt > log.txt
-	cat log.txt >> $LOG_FILE
-	rm tmp.txt
-	#save results file
+#FUNCTION:find all files, login
+function all_report_search {
+	echo "Searching for run results..." | tee -a $LOG_FILE
 	ssh -i $ssh_path $instrIP -l ionadmin <<-EOF > tmp2.txt 2>> $LOG_FILE
-		find /data/IR/data/analysis_output/ -type f -ctime -"$days" -path "*generateConsensus*" -name "*results.json" -not -path "*block*" -printf "%p\t%AY%Am%Ad\n"
+		find /data/IR/data/analysis_output/ -type f -path "*generateConsensus*" -name "*results.json" -not -path "*block*" -printf "%p\t%AY%Am%Ad\n"
 	EOF
 	grep -F '/data/IR' tmp2.txt > report.txt
 	cat report.txt >> $LOG_FILE
 	rm tmp2.txt
-	if [ -s log.txt ];
+	if [ -f report.txt ] && [ -s report.txt ];
 	then
-		COUNT=$(wc -l < log.txt)
-		DAYSAGO=$(date --date="$days days ago" +%m-%d-%Y)
-		echo "$COUNT files found."
-		echo "$COUNT files downloaded from $DAYSAGO." >> $LOG_FILE
+		COUNT=$(wc -l < report.txt)
+		echo "$COUNT reports found."
+		echo "$COUNT files downloaded." >> $LOG_FILE
 	else
-		echo "There are no results from $days days ago. Please increase the number of days."
-		COUNT=$(wc -l < log.txt)
-		DAYSAGO=$(date --date="$days days ago" +%m-%d-%Y)
-		echo "$COUNT files downloaded from $DAYSAGO." >> $LOG_FILE
-		num_days
+		echo "There were no results found, let's try something else." | tee -a $LOG_FILE
+		echo ""
+		echo "Your files may be named different than anticipated."
+		echo "Let's login and see."
+		echo ""
+		echo "You will need your ionadmin password to login to the instrument."
+		echo "Please hold while I look at the folder structure..."
+		echo "... this may take a bit."
+		echo ""
+		echo "Username:  ionadmin"
+		read -p "Password:  " gnx_pw
+		export $gnx_pw
+		ssh -t $ssh_path $instrIP -l ionadmin <<-EOF > tree.txt 2>> $LOG_FILE
+			echo "${gnx_pw}" | sudo -S apt install -y tree
+		EOF
+		ssh -i $ssh_path $instrIP -l ionadmin 'ls /data/IR/data/analysis_output/ -t | head -5 | tail -1 | tree' > tmpx.txt 2>> $LOG_FILE
+		EOF
+		if [ -f tmpx.txt ] && [ -s tmpx.txt ];
+		then
+			echo "Hopefully that can help."
+			echo "Your instrument's file-naming structure will be sent to Lindsey to review." | tee -a $LOG_FILE
+			echo "Thanks!"
+		fi
 	fi
 	mkdir -p /tmp/nywws
 }
 #FUNCTION:upload files
 function gcp_upload {
 	#storage/parallel_composite_upload_enabled False > /dev/null 2>&1
-	while IFS= read -r line || [[ -n "$line" ]]; do
-		s=$(echo $line | sed "s/.*ChipLane.*\/\(.*\)_LibPrep.*/\1/");
-		scp -q -i $ssh_path ionadmin@$instrIP:"$line" /tmp/nywws/$s.ptrim.bam;
-	done < log.txt
-	COUNT=$(wc -l < log.txt)
-	rm log.txt
-	#save results file
+	echo "Renaming files, please wait..."
 	while IFS=$'\t' read -r line res_dt || [[ -n "$line" ]]; do
-		scp -q -i /home/lyr12/.ssh/my_key ionadmin@${ip}:"$line" /tmp/nywws/"$res_dt"_results.json;
+		scp -q -i $ssh_path ionadmin@$instrIP:"$line" /tmp/nywws/"$res_dt"_results.json;
 	done < report.txt
 	REPORT=$(wc -l < report.txt)
 	echo "Files have been renamed."
-	DAYSAGO=$(date --date="$days days ago" +%m-%d-%Y)
-	INBOX=$facility/inbox
 	RUN_RESULTS=$(echo $facility | sed 's/\(.*bucket\/\)\(.*\)/\1run_results\/\2/')
-	gcloud storage cp /tmp/nywws/*.json $RUN_RESULTS
-	gcloud storage cp /tmp/nywws/* $INBOX
+	gcloud storage cp /tmp/nywws/* $RUN_RESULTS > /dev/null 2>&1
 	rm /tmp/nywws/*
-	gsutil ls $INBOX
-	echo "These are the files you will be uploading."
-	read -p 'Do you wish to upload these files (y/n)? ' -r
-		if [[ $REPLY =~ ^[Yy]$ ]]
-			then
-				echo "Files uploading" | tee -a $LOG_FILE
-				gsutil -m mv $INBOX $facility
-				echo "$COUNT files uploaded to GCP from $DAYSAGO." | tee -a $LOG_FILE
-				echo "$REPORT reports uploaded to GCP from $DAYSAGO." >> $LOG_FILE
-			else
-				echo "Files will now be removed."
-				echo "Removing files..."
-				gsutil rm -a $INBOX/*
-				echo "Files removed." | tee -a $LOG_FILE
-				read -p 'Do you wish to restart (y/n)? ' -r
-					if [[ $REPLY =~ ^[Yy]$ ]]
-						then
-							echo "Restarting" | tee -a $LOG_FILE
-							num_days
-							gcp_upload
-						else
-							echo "You should restart soon." | tee -a $LOG_FILE
-					fi
-		fi
+	#gsutil ls $INBOX
+	echo "The reports have been uploaded to $RUN_RESULTS."
 }
 
 
@@ -234,61 +212,9 @@ else
 	echo "Logging into $instrIP with $ssh_path" | tee -a $LOG_FILE
 fi
 
-if test -f "log.txt" ;
-then
-	echo "You have a log file that was not previously uploaded." | tee -a $LOG_FILE
-	read -p "Do you wish to overwrite this file (y/n)? " -r
-	if [[ $REPLY =~ ^[Yy]$ ]]
-	then
-		echo "Overwriting file..." | tee -a $LOG_FILE
-		num_days
-		read -p "Do you wish to upload these now (y/n)? " -r
-		if [[ $REPLY =~ ^[Yy]$ ]]
-		then
-			echo "Files are downloading... Please wait."
-			gcp_upload
-		fi
-	else
-		read -p "Do you wish to upload these now (y/n)? " -r
-		if [[ $REPLY =~ ^[Yy]$ ]]
-		then
-			echo "Files are downloading... Please wait."
-			gcp_upload
-			read -p "Would you like to check for newer files (y/n) " -r
-			if [[ $REPLY =~ ^[Yy]$ ]]
-			then
-				num_days
-				read -p "Do you wish to upload these now (y/n)? " -r
-				if [[ $REPLY =~ ^[Yy]$ ]]
-				then
-					echo "Proceeding... Please wait."
-					gcp_upload
-				fi
-			fi
-		else
-			log2=$(echo log2_${dt}.txt)
-			mv log.txt $log2
-			echo "The old log file is saved as $PWD/$log2. You can upload this at another time." | tee -a $LOG_FILE
-		fi
-	fi
-else
-	num_days
-	read -p "Do you wish to upload these now (y/n)? " -r
-	if [[ $REPLY =~ ^[Yy]$ ]]
-	then
-		echo "Files are downloading... Please wait."
-		gcp_upload
-	else
-		read -p "Are you sure you do NOT want to upload your files (Y/n)? " -r
-		if [[ $REPLY =~ ^[Yy]$ ]]
-		then
-			echo "A list of your files is saved in log.txt. You will have the option to upload next time." | tee -a $LOG_FILE
-		else
-			echo "Proceeding to upload files." | tee -a $LOG_FILE
-			gcp_upload
-		fi
-	fi
-fi
+all_report_search
+gcp_upload
+
 echo "Goodbye! :)"
 echo $date >> $LOG_FILE
 echo "end--">> $LOG_FILE
