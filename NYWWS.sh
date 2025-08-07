@@ -163,7 +163,7 @@ function gcp_upload {
 	rm log.txt
 	#save results file
 	while IFS=$'\t' read -r line res_dt || [[ -n "$line" ]]; do
-		scp -q -i /home/lyr12/.ssh/my_key ionadmin@${ip}:"$line" /tmp/nywws/"$res_dt"_results.json;
+		scp -q -i $ssh_path ionadmin@$instrIP:"$line" /tmp/nywws/"$res_dt"_results.json;
 	done < report.txt
 	REPORT=$(wc -l < report.txt)
 	echo "Files have been renamed."
